@@ -1,8 +1,13 @@
+#include "config.h"
 #include "common.hpp"
 #include "memory.hpp"
 #include <cstdlib>
 #include <cstdio>
+#ifdef LINUX
+#include <malloc.h>
+#elif MAC_OS_X
 #include <malloc/malloc.h>
+#endif
 
 namespace lsvm {
 namespace memory {
@@ -73,7 +78,11 @@ namespace memory {
 
         /* free memory */
         void retain(void* ptr){
+#ifdef LINUX
+            size_t size = malloc_usable_size(ptr);
+#elif MAC_OS_X
             size_t size = malloc_size(ptr);
+#endif
             if(size < cache_size){
                 if(cached >= max_cached){
                     free(ptr);

@@ -1,3 +1,5 @@
 // the configured options and settings for lsvm
 #define LSVM_VERSION_MAJOR @LSVM_VERSION_MAJOR@
 #define LSVM_VERSION_MINOR @LSVM_VERSION_MINOR@
+#define @LINUX@ 1
+#define @MAC_OS_X@ 1
