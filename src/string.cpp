@@ -93,6 +93,69 @@ string* new_string(string* s){
     return r;
 }
 
+iterator* new_iterator(string* s){
+    iterator* it = reinterpret_cast<iterator*>(lsvm::memory::allocate(sizeof(iterator)));
+    it->s = s;
+    it->p = -1;
+    return it;
+}
+    
+void reset_iterator(iterator* it){
+    it->p = -1;
+}
+        
+void free_iterator(iterator* it){
+    lsvm::memory::retain(it);
+}
+
+string_char next(iterator* it){
+    string_char sc = 0;    
+    if((int32_t)it->s->size > it->p)
+        it->p += 1;
+    if(it->s->size == it->p)
+        return null;
+
+    uint8_t* s = reinterpret_cast<uint8_t*>(it->s+1);
+    uint8_t* s2 = reinterpret_cast<uint8_t*>(&sc);
+    s += it->p;
+    
+    if (*s < 0x80) {
+        sc = *s;
+    } else if (*s < 0xE0) {
+        *s2 = *s;
+        *(s2+1) = *(s+1);
+        it->p += 1;
+    } else if (*s < 0xF0) {
+        *s2 = *s;
+        *(s2+1) = *(s+1);
+        *(s2+2) = *(s+2);
+        it->p += 2;
+    } else if (*s < 0xF5) {
+        *s2 = *s;
+        *(s2+1) = *(s+1);
+        *(s2+2) = *(s+2);
+        *(s2+3) = *(s+3);
+        it->p += 3;
+    }
+
+    return sc;
+}
+
+string_char char_at(string* s, uint32_t index){
+    if(s->count <= index)
+        throw "index out of bound";
+
+    iterator* it = new_iterator(s);
+    while(index > 0){
+        next(it);
+        --index;
+    }
+    string_char sc = next(it);
+    free_iterator(it);
+
+    return sc;
+}
+
 bool equals(string* s1, string* s2){
     if(s1->size != s2->size || s1->count != s2->count)
         return false;

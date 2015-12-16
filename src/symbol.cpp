@@ -8,17 +8,7 @@ namespace lsvm {
 namespace symbol {
 
 // symbols table
-lsvm::hashmap::hashmap* symbols = null;
-lsvm::hashmap::iterator* symbols_it = null;
-
-bool symbol_equals(void* sym1, void* sym2){
-    return sym1 == sym2;
-}
-
-lsvm::hashmap::hash symbol_hash(void* s){
-    return (lsvm::hashmap::hash)s;
-}
-
+symbol_table* symbols[256] = { NULL };
 
 // add symbol to symbols table
 symbol* new_symbol(const char* symbol){
@@ -36,9 +26,11 @@ symbol* new_symbol(std::string* symbol){
 }
 
 symbol* new_symbol(lsvm::string::string* symbol){
+    if(lsvm::string::size(symbol) == 0)
+        return null;
+
+    /*
     if(symbols == null){
-        symbols = lsvm::hashmap::new_hashmap(&symbol_equals,&symbol_hash);
-        symbols_it = lsvm::hashmap::new_iterator(symbols);
     }
     lsvm::hashmap::reset_iterator(symbols_it);
     while(lsvm::hashmap::next(symbols_it) != null){
@@ -50,20 +42,17 @@ symbol* new_symbol(lsvm::string::string* symbol){
 
     lsvm::string::string* sym = lsvm::string::new_string(symbol);
     lsvm::hashmap::put(symbols,sym,null);
+    */
     
-    return sym;
+    return null;
 }
 
-
-// symbol equals to symbol
-bool equals(symbol* sym1, symbol* sym2){
+bool symbol_equals(void* sym1, void* sym2){
     return sym1 == sym2;
 }
 
-// remove all symbols from symbol table
-void remove_all(){
-    if(symbols != null)
-        lsvm::hashmap::clear(symbols);
+lsvm::hashmap::hash symbol_hash(void* s){
+    return (lsvm::hashmap::hash)s;
 }
 
 }

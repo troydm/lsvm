@@ -1,10 +1,11 @@
 #include "common.hpp"
 #include "memory.hpp"
-#include <malloc.h>
+#include <cstdlib>
 #include <cstdio>
+#include <malloc/malloc.h>
 
 namespace lsvm {
-    namespace memory {
+namespace memory {
 
         size_t cache_size = 257; // cache size
         size_t max_cached = 8388608; // default value = 8mb
@@ -72,7 +73,7 @@ namespace lsvm {
 
         /* free memory */
         void retain(void* ptr){
-            size_t size = malloc_usable_size(ptr);
+            size_t size = malloc_size(ptr);
             if(size < cache_size){
                 if(cached >= max_cached){
                     free(ptr);
@@ -87,5 +88,5 @@ namespace lsvm {
             }
         }
 
-    }
+}
 }
