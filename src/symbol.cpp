@@ -8,7 +8,7 @@ namespace lsvm {
 namespace symbol {
 
 // symbols table
-symbol_table* symbols[256] = { NULL };
+lsvm::hashmap::hashmap* symbols[256] = { NULL };
 
 // add symbol to symbols table
 symbol* new_symbol(const char* symbol){
@@ -27,24 +27,68 @@ symbol* new_symbol(std::string* symbol){
 
 symbol* new_symbol(lsvm::string::string* symbol){
     if(lsvm::string::size(symbol) == 0)
-        return null;
+        throw "string empty";
 
-    /*
-    if(symbols == null){
-    }
-    lsvm::hashmap::reset_iterator(symbols_it);
-    while(lsvm::hashmap::next(symbols_it) != null){
-        lsvm::symbol::symbol* s = (lsvm::symbol::symbol*)lsvm::hashmap::current(symbols_it)->key; 
-        if(lsvm::string::equals(s, symbol)){
+    lsvm::string::iterator it = lsvm::string::get_iterator(symbol);
+    lsvm::string::string_char c = lsvm::string::next(&it);
+
+    if(c > 255)
+        throw "invalid symbol";
+
+    lsvm::hashmap::hashmap* table = symbols[c];
+
+    if(table == null){
+        table = lsvm::hashmap::new_hashmap(&lsvm::hashmap::string_equals,&lsvm::hashmap::string_hash);   
+        symbols[c] = table;
+        lsvm::string::string* s = lsvm::string::new_string(symbol);
+        lsvm::hashmap::put(table,s,null);
+        return s;
+    }else{
+        lsvm::hashmap::hashentry* entry = lsvm::hashmap::get(table,symbol);
+        if(entry == null){
+            lsvm::string::string* s = lsvm::string::new_string(symbol);
+            lsvm::hashmap::put(table,s,null);
             return s;
+        }else{
+            return reinterpret_cast<lsvm::symbol::symbol*>(entry->key);
         }
     }
+}
 
-    lsvm::string::string* sym = lsvm::string::new_string(symbol);
-    lsvm::hashmap::put(symbols,sym,null);
-    */
+symbol* get_symbol(const char* symbol){
+    lsvm::string::string* s = lsvm::string::new_string(symbol);
+    lsvm::symbol::symbol* sym = get_symbol(s);
+    lsvm::string::free(s);
+    return sym;
+}
     
-    return null;
+symbol* get_symbol(std::string* symbol){
+    lsvm::string::string* s = lsvm::string::new_string(symbol->c_str());
+    lsvm::symbol::symbol* sym = get_symbol(s);
+    lsvm::string::free(s);
+    return sym;
+}
+
+symbol* get_symbol(lsvm::string::string* symbol){
+    if(symbol->count == 0)
+        throw "string empty";
+
+    lsvm::string::iterator it = lsvm::string::get_iterator(symbol);
+    lsvm::string::string_char c = lsvm::string::next(&it);
+
+    if(c > 255)
+        throw "invalid symbol";
+
+    lsvm::hashmap::hashmap* table = symbols[c];
+
+    if(table == null)
+        return null;
+
+    lsvm::hashmap::hashentry* entry = lsvm::hashmap::get(table,symbol);
+    if(entry == null)
+        return null;
+    else
+        return reinterpret_cast<lsvm::symbol::symbol*>(entry->key);
 }
 
 bool symbol_equals(void* sym1, void* sym2){

@@ -13,7 +13,7 @@ extern "C" {
 }
 
 namespace lsvm {
-    namespace hashmap {
+namespace hashmap {
         typedef uint64_t hash;
 
         // Equality and hash function pointer
@@ -76,11 +76,10 @@ namespace lsvm {
         void put(hashmap* h, void* key, void* val);
 
         // get val for key
-        void* get(hashmap* h, void* key);
+        hashentry* get(hashmap* h, void* key);
        
         // remove val for key
         void* remove(hashmap* h, void* key);
-        
 
         // free hashmap
         void free(hashmap* h);
@@ -93,22 +92,11 @@ namespace lsvm {
 
 
         // iterator functions
-        
-        // allocate new iterator
-        iterator* new_iterator(hashmap* h);
-        
-        // current iterator entry
-        hashentry* current(iterator* hi);
-
-        // next iterator entry
-        hashentry* next(iterator* hi);
-        
-        // reset hashmap iterator
+        iterator get_iterator(hashmap* h);
         void reset_iterator(iterator* hi);
-        
-        // free hashmap iterator
-        void free_iterator(iterator* hi);
-    }
+        hashentry* current(iterator* hi);
+        hashentry* next(iterator* hi);
+}
 }
 
 

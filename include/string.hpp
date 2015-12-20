@@ -33,13 +33,13 @@ namespace string {
             return reinterpret_cast<char*>(reinterpret_cast<uint8_t*>(s) + sizeof(string));
         }
         
-        // access
-        iterator* new_iterator(string* s);
+        // iterator
+        iterator get_iterator(string* s);
         void reset_iterator(iterator* it);
-        void free_iterator(iterator* it);
         string_char next(iterator* it);
+
+        // access
         string_char char_at(string* s, uint32_t index);
-        
 
         // string equals
         bool equals(string* s1, string* s2);

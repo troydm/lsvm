@@ -3,7 +3,7 @@
 #include "memory.hpp"
 
 namespace lsvm {
-    namespace string {
+namespace string {
 
 // new string
 string* new_string(){
@@ -93,26 +93,22 @@ string* new_string(string* s){
     return r;
 }
 
-iterator* new_iterator(string* s){
-    iterator* it = reinterpret_cast<iterator*>(lsvm::memory::allocate(sizeof(iterator)));
-    it->s = s;
-    it->p = -1;
+iterator get_iterator(string* s){
+    iterator it;
+    it.s = s;
+    it.p = -1;
     return it;
 }
     
 void reset_iterator(iterator* it){
     it->p = -1;
 }
-        
-void free_iterator(iterator* it){
-    lsvm::memory::retain(it);
-}
 
 string_char next(iterator* it){
     string_char sc = 0;    
     if((int32_t)it->s->size > it->p)
         it->p += 1;
-    if(it->s->size == it->p)
+    if((int32_t)it->s->size == it->p)
         return null;
 
     uint8_t* s = reinterpret_cast<uint8_t*>(it->s+1);
@@ -145,13 +141,12 @@ string_char char_at(string* s, uint32_t index){
     if(s->count <= index)
         throw "index out of bound";
 
-    iterator* it = new_iterator(s);
+    iterator it = get_iterator(s);
     while(index > 0){
-        next(it);
+        next(&it);
         --index;
     }
-    string_char sc = next(it);
-    free_iterator(it);
+    string_char sc = next(&it);
 
     return sc;
 }
@@ -191,5 +186,5 @@ void free(string* s){
     lsvm::memory::retain(s);
 }
 
-    }
+}
 }

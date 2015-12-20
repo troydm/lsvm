@@ -429,7 +429,7 @@ void put(hashmap* h, void* key, void* val){
 }
 
 // get val for key
-void* get(hashmap* h, void* key){
+hashentry* get(hashmap* h, void* key){
     // calculate hash for a key
     hash keyhash = h->hash(key);
     // calculate bit for a hash
@@ -448,7 +448,7 @@ void* get(hashmap* h, void* key){
             hashentry* ehe = entry(bp,bs-1);
             while(he <= ehe){
                 if(he->keyhash == keyhash && he->key != null && h->equals(key,he->key))
-                    return he->val;
+                    return he;
                 ++he;
             }
             range = (index+range) - bs;
@@ -456,14 +456,14 @@ void* get(hashmap* h, void* key){
             ehe = he + range;
             while(he <= ehe){
                 if(he->keyhash == keyhash && he->key != null && h->equals(key,he->key))
-                    return he->val;
+                    return he;
                 ++he;
             }
         }else{
             hashentry* ehe = he + range;
             while(he <= ehe){
                 if(he->keyhash == keyhash && he->key != null && h->equals(key,he->key))
-                    return he->val;
+                    return he;
                 ++he;
             }
         }
@@ -608,10 +608,10 @@ void print(hashmap* h){
 
 
 // new iterator
-iterator* new_iterator(hashmap* h){
-    iterator* hi = reinterpret_cast<iterator*>(lsvm::memory::allocate(sizeof(iterator)));
-    hi->h= h;
-    reset_iterator(hi);
+iterator get_iterator(hashmap* h){
+    iterator hi;
+    hi.h= h;
+    reset_iterator(&hi);
     return hi;
 }
 
@@ -621,11 +621,6 @@ void reset_iterator(iterator* hi){
     hi->b = null;
     hi->he = null;
     hi->ehe = null;
-}
-
-// free hashmap iterator
-void free_iterator(iterator* hi){
-    lsvm::memory::retain(hi);
 }
 
 // current iterator entry

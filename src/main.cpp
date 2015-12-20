@@ -94,9 +94,11 @@ int main(int argc, char* argv[]){
 
     //ASTMessage m(ASTNumber(4),ASTLiteral("+"),ASTNumber(4));
     // Integer a(12);
-    // printf("%p\n",lsvm::symbol::new_symbol("hello"));
-    // printf("%p\n",lsvm::symbol::new_symbol("hello"));
-    //
+    printf("%p\n",lsvm::symbol::get_symbol("hello"));
+    printf("%p\n",lsvm::symbol::new_symbol("hello"));
+    printf("%p\n",lsvm::symbol::new_symbol("hello"));
+    printf("%p\n",lsvm::symbol::get_symbol("hello"));
+    
     cout << "Hello World!" << endl;
 
     lsvm::memory::deinitialize();
