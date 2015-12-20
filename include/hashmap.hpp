@@ -1,9 +1,6 @@
 #ifndef HASHMAP_H
 #define HASHMAP_H
 
-#include <stdint.h>
-#include <string>
-#include <cstring>
 #include "common.hpp"
 #include "string.hpp"
 

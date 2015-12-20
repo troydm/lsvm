@@ -1,16 +1,15 @@
 #ifndef STRING_H
 #define STRING_H
 
-#include <string>
-#include <vector>
-#include <cstdbool>
+#include "common.hpp"
 
 namespace lsvm {
 namespace string {
 
         typedef uint32_t string_char;
 
-        typedef struct { 
+        typedef struct string_t { 
+            lsvm::object::object obj;
             uint32_t count; // number of utf-8 characters
             uint32_t size; // size in bytes
         } string;

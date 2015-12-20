@@ -2,16 +2,26 @@
 #define OBJECT_H
 
 namespace lsvm {
-    namespace object {
-
-        enum type { NIL_TYPE=0, OBJECT_TYPE=1, INTEGER=2, FLOAT=3, SYMBOL=4, STRING=5 };
-
-        typedef struct {
-            unsigned int ref_count;
-        } object;
-
-    }
+namespace string {
+    struct string_t;
 }
 
+namespace object {
+
+    typedef struct {
+        struct lsvm::string::string_t* name;
+    } package;
+
+    typedef struct {
+        package* pkg;
+        struct lsvm::string::string_t* name;
+    } obj_class;
+
+    typedef struct {
+        obj_class cls;
+    } object;
+
+}
+}
 
 #endif

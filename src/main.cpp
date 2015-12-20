@@ -101,6 +101,8 @@ int main(int argc, char* argv[]){
     
     cout << "Hello World!" << endl;
 
+    lsvm::symbol::clear();
+    printf("%p\n",lsvm::symbol::get_symbol("hello"));
     lsvm::memory::deinitialize();
 
     return 0;

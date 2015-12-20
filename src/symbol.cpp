@@ -91,6 +91,24 @@ symbol* get_symbol(lsvm::string::string* symbol){
         return reinterpret_cast<lsvm::symbol::symbol*>(entry->key);
 }
 
+void clear(){
+    for(uint16_t i = 0; i < 256; ++i){
+        lsvm::hashmap::hashmap* table = symbols[i];
+        if(table != null){
+
+            lsvm::hashmap::iterator it = lsvm::hashmap::get_iterator(table);
+            lsvm::hashmap::hashentry* he = lsvm::hashmap::next(&it);
+            while(he != null){
+                lsvm::string::free(reinterpret_cast<lsvm::string::string*>(he->key));            
+                he = lsvm::hashmap::next(&it);
+            }
+        
+            lsvm::hashmap::free(table);
+            symbols[i] = null;
+        }
+    }
+}
+
 bool symbol_equals(void* sym1, void* sym2){
     return sym1 == sym2;
 }

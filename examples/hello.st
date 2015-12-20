@@ -1,3 +1,5 @@
+package test
+
 class Hello [
 | x y |
 new
