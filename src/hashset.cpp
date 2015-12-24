@@ -1,9 +1,11 @@
 #include <cstdio>
-#include "hashmap.hpp"
+#include "hashset.hpp"
 #include "memory.hpp"
 
 namespace lsvm {
-namespace hashmap {
+namespace hashset {
+
+using lsvm::hashmap::hash_string;
 
 // prime numbers used for a hash table section
 #define PRIME_MAX 24
@@ -27,20 +29,18 @@ hash string_hash(void* p){
 #define bucket_size(b) primes[(b)->bucket_size_indx]
 #define load_factor(b) (((b)->count*100)/bucket_size(b))
 
-inline hashbucket** buckets(hashmap* h) { return reinterpret_cast<hashbucket**>(h+1); }
-inline hashbucket** partition(hashmap* h, uint16_t bit) { return buckets(h)+bit; }
+inline hashbucket** buckets(hashset* h) { return reinterpret_cast<hashbucket**>(h+1); }
+inline hashbucket** partition(hashset* h, uint16_t bit) { return buckets(h)+bit; }
 inline entry* entries(hashbucket* b) { return reinterpret_cast<entry*>(b+1); }
 inline entry* get_entry(hashbucket* b, uint32_t indx) { return entries(b) + indx; }
-inline void insert_entry(hashmap* h, hashbucket* bp, entry* he, hash keyhash, void* key, void* val){ 
-    he->keyhash = keyhash;
-    he->key = key;
+inline void insert_entry(hashset* h, hashbucket* bp, entry* he, hash hash, void* val){ 
+    he->hash = hash;
     he->val  = val;
     bp->count += 1;
     h->count += 1;
 }
-inline void clear_entry(hashmap* h, hashbucket* bp, entry* he){ 
-    he->keyhash = 0;
-    he->key = null;
+inline void clear_entry(hashset* h, hashbucket* bp, entry* he){ 
+    he->hash = 0;
     he->val = null;
     bp->count -= 1;
     h->count -= 1;
@@ -59,7 +59,7 @@ inline uint8_t find_bucket_index(const uint32_t size){
     return PRIME_MAX-1;
 }
         
-hashmap* new_hashmap(equals_fp efp, hash_fp hfp, uint8_t bits, uint8_t max_bits, uint16_t max_depth, uint16_t range, uint32_t new_bucket_size, uint32_t avg_bucket_size){
+hashset* new_hashset(equals_fp efp, hash_fp hfp, uint8_t bits, uint8_t max_bits, uint16_t max_depth, uint16_t range, uint32_t new_bucket_size, uint32_t avg_bucket_size){
     // check if functions are provided
     if(efp == null || hfp == null)
         return null;
@@ -71,8 +71,8 @@ hashmap* new_hashmap(equals_fp efp, hash_fp hfp, uint8_t bits, uint8_t max_bits,
     // calculate max buckets
     uint32_t max_partitions = pow2n(max_bits);
 
-    // allocate new hashmap
-    hashmap* h = (hashmap*)lsvm::memory::allocate(sizeof(hashmap)+(max_partitions*sizeof(hashbucket*)));
+    // allocate new hashset
+    hashset* h = (hashset*)lsvm::memory::allocate(sizeof(hashset)+(max_partitions*sizeof(hashbucket*)));
     h->equals = efp;
     h->hash = hfp;
     h->count = 0;
@@ -106,7 +106,7 @@ inline hashbucket* new_bucket(uint8_t size_indx){
 }
 
 // add new bucket to partition
-inline hashbucket* add_new_bucket(hashmap* h, hashbucket** b, uint8_t new_size_indx){
+inline hashbucket* add_new_bucket(hashset* h, hashbucket** b, uint8_t new_size_indx){
     hashbucket* nb = new_bucket(new_size_indx);
     nb->next = *b;
     *b = nb;
@@ -183,10 +183,10 @@ void balance_partition(hashbucket** pb){
 
 
 // insert into partition
-void insert_into_partition(hashmap* h, hash keyhash, uint16_t bit, void* key, void* val, bool allow_reshaffle);
+void insert_into_partition(hashset* h, hash keyhash, uint16_t bit, void* val, bool allow_reshaffle);
 
 // copy bucket into new bucket with new size
-inline void copy_into_new_bucket(hashmap* h, hashbucket** pb, hashbucket** b, uint32_t new_size_indx){
+inline void copy_into_new_bucket(hashset* h, hashbucket** pb, hashbucket** b, uint32_t new_size_indx){
 
     // remove current bucket from partition and add new bigger one
     hashbucket* ob = *b;
@@ -201,8 +201,8 @@ inline void copy_into_new_bucket(hashmap* h, hashbucket** pb, hashbucket** b, ui
     entry* he = entries(ob); 
     entry* ehe = get_entry(ob,bucket_size(ob)-1); 
     while(he <= ehe){
-        if(he->key != null){
-            insert_into_partition(h,he->keyhash,hashbit(he->keyhash,h->bits),he->key,he->val,true);
+        if(he->val != null){
+            insert_into_partition(h,he->hash,hashbit(he->hash,h->bits),he->val,true);
         }
         ++he;
     }
@@ -216,7 +216,7 @@ inline void copy_into_new_bucket(hashmap* h, hashbucket** pb, hashbucket** b, ui
 
 // resize bucket or create a new one if can't resize
 // note: will always return pointer to bucket
-inline void resize_or_new_bucket(hashmap* h, uint16_t bit){
+inline void resize_or_new_bucket(hashset* h, uint16_t bit){
     // find out current partition bucket
     hashbucket** pb = partition(h,bit);
     // find less densiest bucket
@@ -252,7 +252,7 @@ inline void resize_or_new_bucket(hashmap* h, uint16_t bit){
 }
 
 
-inline void reshuffle_partition(hashmap* h, uint16_t bit){
+inline void reshuffle_partition(hashset* h, uint16_t bit){
     hashbucket** pb = partition(h,bit); 
     hashbucket** bp = pb;
     // find entries to reshuffle
@@ -260,10 +260,10 @@ inline void reshuffle_partition(hashmap* h, uint16_t bit){
         entry* he = entries(*bp);
         entry* ehe = get_entry(*bp,bucket_size(*bp)-1);
         while(he <= ehe){
-            if(he->key != null){
-                uint16_t ebit = hashbit(he->keyhash,h->bits);
+            if(he->val != null){
+                uint16_t ebit = hashbit(he->hash,h->bits);
                 if(ebit != bit){
-                    insert_into_partition(h,he->keyhash,ebit,he->key,he->val,false);
+                    insert_into_partition(h,he->hash,ebit,he->val,false);
                     clear_entry(h,*bp,he);
                 }
             }
@@ -283,7 +283,7 @@ inline void reshuffle_partition(hashmap* h, uint16_t bit){
     balance_partition(pb);
 }
 
-void insert_into_partition(hashmap* h, hash keyhash, uint16_t bit, void* key, void* val, bool allow_reshaffle){
+void insert_into_partition(hashset* h, hash keyhash, uint16_t bit, void* val, bool allow_reshaffle){
     hashbucket** pb = partition(h,bit);
     hashbucket* bp = *pb;
     // find empty entry in a bucket
@@ -298,8 +298,8 @@ void insert_into_partition(hashmap* h, hash keyhash, uint16_t bit, void* key, vo
                 entry* he = get_entry(bp,index);
                 entry* ehe = get_entry(bp,bs-1);
                 while(he <= ehe){
-                    if(he->key == null){
-                        insert_entry(h,bp,he,keyhash,key,val);
+                    if(he->val == null){
+                        insert_entry(h,bp,he,keyhash,val);
                         return;
                     }
                     ++he;
@@ -308,8 +308,8 @@ void insert_into_partition(hashmap* h, hash keyhash, uint16_t bit, void* key, vo
                 he = get_entry(bp,0);
                 ehe = he+range;
                 while(he <= ehe){
-                    if(he->key == null){
-                        insert_entry(h,bp,he,keyhash,key,val);
+                    if(he->val == null){
+                        insert_entry(h,bp,he,keyhash,val);
                         return;
                     }
                     ++he;
@@ -318,8 +318,8 @@ void insert_into_partition(hashmap* h, hash keyhash, uint16_t bit, void* key, vo
                 entry* he = get_entry(bp,index);
                 entry* ehe = he+range;
                 while(he <= ehe){
-                    if(he->key == null){
-                        insert_entry(h,bp,he,keyhash,key,val);
+                    if(he->val == null){
+                        insert_entry(h,bp,he,keyhash,val);
                         return;
                     }
                     ++he;
@@ -336,7 +336,7 @@ void insert_into_partition(hashmap* h, hash keyhash, uint16_t bit, void* key, vo
         // new bucket added to partition
         bp = add_new_bucket(h,pb,h->new_bucket_indx);
         entry* he = get_entry(bp,entry_index(bp,keyhash));
-        insert_entry(h,bp,he,keyhash,key,val);
+        insert_entry(h,bp,he,keyhash,val);
     }else{
         // check if max bits reached
         if(h->bits != h->max_bits && allow_reshaffle){
@@ -373,13 +373,13 @@ void insert_into_partition(hashmap* h, hash keyhash, uint16_t bit, void* key, vo
             resize_or_new_bucket(h, hashbit(keyhash,h->bits));
         }
         // after reshuffling or resizing try to insert key again
-        insert_into_partition(h, keyhash, hashbit(keyhash,h->bits), key, val, false);
+        insert_into_partition(h, keyhash, hashbit(keyhash,h->bits), val, false);
     }
 }
 
-void put(hashmap* h, void* key, void* val){
+void put(hashset* h, void* val){
     // calculate hash for a key
-    hash keyhash = h->hash(key);
+    hash keyhash = h->hash(val);
     // calculate bit for a hash
     uint16_t bit = hashbit(keyhash,h->bits);
     // get bit partition bucket
@@ -395,7 +395,7 @@ void put(hashmap* h, void* key, void* val){
         if((index+range) >= bs){
             entry* ehe = get_entry(bp,bs-1);
             while(he <= ehe){
-                if(he->keyhash == keyhash && he->key != null && h->equals(key,he->key)){
+                if(he->hash == keyhash && he->val != null && h->equals(val,he->val)){
                     he->val = val;
                     return;
                 }
@@ -405,7 +405,7 @@ void put(hashmap* h, void* key, void* val){
             he = get_entry(bp,0);
             ehe = he+range;
             while(he <= ehe){
-                if(he->keyhash == keyhash && he->key != null && h->equals(key,he->key)){
+                if(he->hash == keyhash && he->val != null && h->equals(val,he->val)){
                     he->val = val;
                     return;
                 }
@@ -414,7 +414,7 @@ void put(hashmap* h, void* key, void* val){
         }else{
             entry* ehe = he + range;
             while(he <= ehe){
-                if(he->keyhash == keyhash && he->key != null && h->equals(key,he->key)){
+                if(he->hash == keyhash && he->val != null && h->equals(val,he->val)){
                     he->val = val;
                     return;
                 }
@@ -425,13 +425,13 @@ void put(hashmap* h, void* key, void* val){
     }
 
     // if key not found insert it into partition
-    insert_into_partition(h,keyhash,bit,key,val,true);
+    insert_into_partition(h,keyhash,bit,val,true);
 }
 
 // get val for key
-entry* get(hashmap* h, void* key){
+entry* get(hashset* h, void* val){
     // calculate hash for a key
-    hash keyhash = h->hash(key);
+    hash keyhash = h->hash(val);
     // calculate bit for a hash
     uint16_t bit = hashbit(keyhash,h->bits);
     // get bit partition bucket
@@ -447,7 +447,7 @@ entry* get(hashmap* h, void* key){
         if((index+range) >= bs){
             entry* ehe = get_entry(bp,bs-1);
             while(he <= ehe){
-                if(he->keyhash == keyhash && he->key != null && h->equals(key,he->key))
+                if(he->hash == keyhash && he->val != null && h->equals(val,he->val))
                     return he;
                 ++he;
             }
@@ -455,14 +455,14 @@ entry* get(hashmap* h, void* key){
             he = get_entry(bp,0);
             ehe = he + range;
             while(he <= ehe){
-                if(he->keyhash == keyhash && he->key != null && h->equals(key,he->key))
+                if(he->hash == keyhash && he->val != null && h->equals(val,he->val))
                     return he;
                 ++he;
             }
         }else{
             entry* ehe = he + range;
             while(he <= ehe){
-                if(he->keyhash == keyhash && he->key != null && h->equals(key,he->key))
+                if(he->hash == keyhash && he->val != null && h->equals(val,he->val))
                     return he;
                 ++he;
             }
@@ -474,9 +474,9 @@ entry* get(hashmap* h, void* key){
 }
 
 // remove val for key
-void* remove(hashmap* h, void* key){
+void* remove(hashset* h, void* val){
     // calculate hash for a key
-    hash keyhash = h->hash(key);
+    hash keyhash = h->hash(val);
     // calculate bit for a hash
     uint16_t bit = hashbit(keyhash,h->bits);
     // get bit partition bucket
@@ -492,7 +492,7 @@ void* remove(hashmap* h, void* key){
         if((index+range) >= bs){
             entry* ehe = get_entry(bp,bs-1);
             while(he <= ehe){
-                if(he->keyhash == keyhash && he->key != null && h->equals(key,he->key)){
+                if(he->hash == keyhash && he->val != null && h->equals(val,he->val)){
                     void* val = he->val;
                     clear_entry(h,bp,he);
                     return val;
@@ -503,7 +503,7 @@ void* remove(hashmap* h, void* key){
             he = get_entry(bp,0);
             ehe = he + range;
             while(he <= ehe){
-                if(he->keyhash == keyhash && he->key != null && h->equals(key,he->key)){
+                if(he->hash == keyhash && he->val != null && h->equals(val,he->val)){
                     void* val = he->val;
                     clear_entry(h,bp,he);
                     return val;
@@ -513,7 +513,7 @@ void* remove(hashmap* h, void* key){
         }else{
             entry* ehe = he + range;
             while(he <= ehe){
-                if(he->keyhash == keyhash && he->key != null && h->equals(key,he->key)){
+                if(he->hash == keyhash && he->val != null && h->equals(val,he->val)){
                     void* val = he->val;
                     clear_entry(h,bp,he);
                     return val;
@@ -536,8 +536,8 @@ void free_bucket(hashbucket* b){
     }
 }
 
-// free hashmap
-void free(hashmap* h){
+// free hashset
+void free(hashset* h){
     // calculate current max partitions
     uint32_t max_partitions = partition_count(h->bits);
 
@@ -549,12 +549,12 @@ void free(hashmap* h){
         ++i;
     }
 
-    // free hashmap
+    // free hashset
     lsvm::memory::retain(h);
 }
 
-// clear hashmap
-void clear(hashmap* h){
+// clear hashset
+void clear(hashset* h){
     // calculate current max partitions
     uint32_t max_partitions = partition_count(h->bits);
 
@@ -570,8 +570,8 @@ void clear(hashmap* h){
     h->count = 0;
 }
         
-void print(hashmap* h){
-    printf("hashmap: [count:%d][partitions:%d/%d][max_depth:%d][new_bucket_size:%d,range=%d,avg_bucket_size:%d]\npartitions: [",h->count, h->bits,h->max_bits, h->max_depth, primes[h->new_bucket_indx],h->range,primes[h->avg_bucket_indx]);
+void print(hashset* h){
+    printf("hashset: [count:%d][partitions:%d/%d][max_depth:%d][new_bucket_size:%d,range=%d,avg_bucket_size:%d]\npartitions: [",h->count, h->bits,h->max_bits, h->max_depth, primes[h->new_bucket_indx],h->range,primes[h->avg_bucket_indx]);
     
     uint32_t max_partitions = partition_count(h->bits);
     hashbucket** bp = buckets(h);
@@ -608,7 +608,7 @@ void print(hashmap* h){
 
 
 // new iterator
-iterator get_iterator(hashmap* h){
+iterator get_iterator(hashset* h){
     iterator hi;
     hi.h= h;
     reset_iterator(&hi);
@@ -632,7 +632,7 @@ entry* next(iterator* hi){
     if(hi->he < hi->ehe){
         // move to next entry
         ++(hi->he);
-        while(hi->he->key == null && hi->he < hi->ehe){
+        while(hi->he->val == null && hi->he < hi->ehe){
             ++(hi->he);
         }
         if(hi->he == hi->ehe){
@@ -650,7 +650,7 @@ entry* next(iterator* hi){
         }else{
             hi->he = get_entry(hi->b,0);
             hi->ehe = get_entry(hi->b,bucket_size(hi->b));
-            while(hi->he->key == null && hi->he < hi->ehe){
+            while(hi->he->val == null && hi->he < hi->ehe){
                 ++(hi->he);
             }
             if(hi->he == hi->ehe){
@@ -669,7 +669,7 @@ entry* next(iterator* hi){
         }else{
             hi->he = get_entry(hi->b,0);
             hi->ehe = get_entry(hi->b,bucket_size(hi->b));
-            while(hi->he->key == null && hi->he < hi->ehe){
+            while(hi->he->val == null && hi->he < hi->ehe){
                 ++(hi->he);
             }
             if(hi->he == hi->ehe){

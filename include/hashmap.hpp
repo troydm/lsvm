@@ -38,7 +38,7 @@ namespace hashmap {
             hash keyhash;
             void* key;
             void* val;
-        } hashentry;
+        } entry;
 
         typedef struct hashbucket_t {
             struct hashbucket_t* next;
@@ -58,8 +58,8 @@ namespace hashmap {
             hashmap* h;
             uint8_t bit;
             hashbucket* b;
-            hashentry* he;
-            hashentry* ehe;
+            entry* he;
+            entry* ehe;
         } iterator;
 
 
@@ -73,7 +73,7 @@ namespace hashmap {
         void put(hashmap* h, void* key, void* val);
 
         // get val for key
-        hashentry* get(hashmap* h, void* key);
+        entry* get(hashmap* h, void* key);
        
         // remove val for key
         void* remove(hashmap* h, void* key);
@@ -91,8 +91,8 @@ namespace hashmap {
         // iterator functions
         iterator get_iterator(hashmap* h);
         void reset_iterator(iterator* hi);
-        hashentry* current(iterator* hi);
-        hashentry* next(iterator* hi);
+        entry* current(iterator* hi);
+        entry* next(iterator* hi);
 }
 }
 
