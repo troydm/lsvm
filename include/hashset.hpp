@@ -12,7 +12,7 @@ namespace hashset {
     using lsvm::hashmap::hashbucket;
 
     typedef struct {
-        hash hash;
+        hash valhash;
         void* val;
     } entry;
 

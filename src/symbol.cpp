@@ -7,8 +7,12 @@
 namespace lsvm {
 namespace symbol {
 
+#define alpha1(c) (0x41 <= c && c <= 0x5A)
+#define alpha2(c) (0x61 <= c && c <= 0x7A)
+    
 // symbols table
-lsvm::hashset::hashset* symbols[256] = { NULL };
+lsvm::hashset::hashset* symbols_alpha[52] = { null };
+lsvm::hashset::hashset* symbols_other = null;
 
 // add symbol to symbols table
 symbol* new_symbol(const char* symbol){
@@ -32,26 +36,34 @@ symbol* new_symbol(lsvm::string::string* symbol){
     lsvm::string::iterator it = lsvm::string::get_iterator(symbol);
     lsvm::string::string_char c = lsvm::string::next(&it);
 
-    if(c > 255)
-        throw "invalid symbol";
+    lsvm::hashset::hashset* table;
+    if(alpha1(c)){
+        table = symbols_alpha[c-0x41];
+        if(table == null){
+            table = lsvm::hashset::new_hashset(&lsvm::hashmap::string_equals,&lsvm::hashmap::string_hash);   
+            symbols_alpha[c-0x41] = table;
+        }
+    }else if(alpha2(c)){
+        table = symbols_alpha[c-0x61+0x1A];
+        if(table == null){
+            table = lsvm::hashset::new_hashset(&lsvm::hashmap::string_equals,&lsvm::hashmap::string_hash);   
+            symbols_alpha[c-0x61+0x1A] = table;
+        }
+    }else{
+        table = symbols_other;
+        if(table == null){
+            table = lsvm::hashset::new_hashset(&lsvm::hashmap::string_equals,&lsvm::hashmap::string_hash);   
+            symbols_other = table;
+        }
+    }
 
-    lsvm::hashset::hashset* table = symbols[c];
-
-    if(table == null){
-        table = lsvm::hashset::new_hashset(&lsvm::hashmap::string_equals,&lsvm::hashmap::string_hash);   
-        symbols[c] = table;
+    lsvm::hashset::entry* entry = lsvm::hashset::get(table,symbol);
+    if(entry == null){
         lsvm::string::string* s = lsvm::string::new_string(symbol);
         lsvm::hashset::put(table,s);
         return s;
     }else{
-        lsvm::hashset::entry* entry = lsvm::hashset::get(table,symbol);
-        if(entry == null){
-            lsvm::string::string* s = lsvm::string::new_string(symbol);
-            lsvm::hashset::put(table,s);
-            return s;
-        }else{
-            return reinterpret_cast<lsvm::symbol::symbol*>(entry->val);
-        }
+        return reinterpret_cast<lsvm::symbol::symbol*>(entry->val);
     }
 }
 
@@ -76,10 +88,15 @@ symbol* get_symbol(lsvm::string::string* symbol){
     lsvm::string::iterator it = lsvm::string::get_iterator(symbol);
     lsvm::string::string_char c = lsvm::string::next(&it);
 
-    if(c > 255)
-        throw "invalid symbol";
+    lsvm::hashset::hashset* table;
 
-    lsvm::hashset::hashset* table = symbols[c];
+    if(alpha1(c)){
+        table = symbols_alpha[c-0x41];
+    }else if(alpha2(c)){
+        table = symbols_alpha[c-0x61+0x1A];
+    }else{
+        table = symbols_other;
+    }
 
     if(table == null)
         return null;
@@ -92,8 +109,8 @@ symbol* get_symbol(lsvm::string::string* symbol){
 }
 
 void clear(){
-    for(uint16_t i = 0; i < 256; ++i){
-        lsvm::hashset::hashset* table = symbols[i];
+    for(uint16_t i = 0; i < 52; ++i){
+        lsvm::hashset::hashset* table = symbols_alpha[i];
         if(table != null){
 
             lsvm::hashset::iterator it = lsvm::hashset::get_iterator(table);
@@ -104,8 +121,21 @@ void clear(){
             }
         
             lsvm::hashset::free(table);
-            symbols[i] = null;
+            symbols_alpha[i] = null;
         }
+    }
+
+    if(symbols_other != null){
+
+        lsvm::hashset::iterator it = lsvm::hashset::get_iterator(symbols_other);
+        lsvm::hashset::entry* he = lsvm::hashset::next(&it);
+        while(he != null){
+            lsvm::string::free(reinterpret_cast<lsvm::string::string*>(he->val));            
+            he = lsvm::hashset::next(&it);
+        }
+
+        lsvm::hashset::free(symbols_other);
+        symbols_other = null;
     }
 }
 

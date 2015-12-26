@@ -34,13 +34,13 @@ inline hashbucket** partition(hashset* h, uint16_t bit) { return buckets(h)+bit;
 inline entry* entries(hashbucket* b) { return reinterpret_cast<entry*>(b+1); }
 inline entry* get_entry(hashbucket* b, uint32_t indx) { return entries(b) + indx; }
 inline void insert_entry(hashset* h, hashbucket* bp, entry* he, hash hash, void* val){ 
-    he->hash = hash;
+    he->valhash = hash;
     he->val  = val;
     bp->count += 1;
     h->count += 1;
 }
 inline void clear_entry(hashset* h, hashbucket* bp, entry* he){ 
-    he->hash = 0;
+    he->valhash = 0;
     he->val = null;
     bp->count -= 1;
     h->count -= 1;
@@ -202,7 +202,7 @@ inline void copy_into_new_bucket(hashset* h, hashbucket** pb, hashbucket** b, ui
     entry* ehe = get_entry(ob,bucket_size(ob)-1); 
     while(he <= ehe){
         if(he->val != null){
-            insert_into_partition(h,he->hash,hashbit(he->hash,h->bits),he->val,true);
+            insert_into_partition(h,he->valhash,hashbit(he->valhash,h->bits),he->val,true);
         }
         ++he;
     }
@@ -261,9 +261,9 @@ inline void reshuffle_partition(hashset* h, uint16_t bit){
         entry* ehe = get_entry(*bp,bucket_size(*bp)-1);
         while(he <= ehe){
             if(he->val != null){
-                uint16_t ebit = hashbit(he->hash,h->bits);
+                uint16_t ebit = hashbit(he->valhash,h->bits);
                 if(ebit != bit){
-                    insert_into_partition(h,he->hash,ebit,he->val,false);
+                    insert_into_partition(h,he->valhash,ebit,he->val,false);
                     clear_entry(h,*bp,he);
                 }
             }
@@ -395,7 +395,7 @@ void put(hashset* h, void* val){
         if((index+range) >= bs){
             entry* ehe = get_entry(bp,bs-1);
             while(he <= ehe){
-                if(he->hash == keyhash && he->val != null && h->equals(val,he->val)){
+                if(he->valhash == keyhash && he->val != null && h->equals(val,he->val)){
                     he->val = val;
                     return;
                 }
@@ -405,7 +405,7 @@ void put(hashset* h, void* val){
             he = get_entry(bp,0);
             ehe = he+range;
             while(he <= ehe){
-                if(he->hash == keyhash && he->val != null && h->equals(val,he->val)){
+                if(he->valhash == keyhash && he->val != null && h->equals(val,he->val)){
                     he->val = val;
                     return;
                 }
@@ -414,7 +414,7 @@ void put(hashset* h, void* val){
         }else{
             entry* ehe = he + range;
             while(he <= ehe){
-                if(he->hash == keyhash && he->val != null && h->equals(val,he->val)){
+                if(he->valhash == keyhash && he->val != null && h->equals(val,he->val)){
                     he->val = val;
                     return;
                 }
@@ -447,7 +447,7 @@ entry* get(hashset* h, void* val){
         if((index+range) >= bs){
             entry* ehe = get_entry(bp,bs-1);
             while(he <= ehe){
-                if(he->hash == keyhash && he->val != null && h->equals(val,he->val))
+                if(he->valhash == keyhash && he->val != null && h->equals(val,he->val))
                     return he;
                 ++he;
             }
@@ -455,14 +455,14 @@ entry* get(hashset* h, void* val){
             he = get_entry(bp,0);
             ehe = he + range;
             while(he <= ehe){
-                if(he->hash == keyhash && he->val != null && h->equals(val,he->val))
+                if(he->valhash == keyhash && he->val != null && h->equals(val,he->val))
                     return he;
                 ++he;
             }
         }else{
             entry* ehe = he + range;
             while(he <= ehe){
-                if(he->hash == keyhash && he->val != null && h->equals(val,he->val))
+                if(he->valhash == keyhash && he->val != null && h->equals(val,he->val))
                     return he;
                 ++he;
             }
@@ -492,7 +492,7 @@ void* remove(hashset* h, void* val){
         if((index+range) >= bs){
             entry* ehe = get_entry(bp,bs-1);
             while(he <= ehe){
-                if(he->hash == keyhash && he->val != null && h->equals(val,he->val)){
+                if(he->valhash == keyhash && he->val != null && h->equals(val,he->val)){
                     void* val = he->val;
                     clear_entry(h,bp,he);
                     return val;
@@ -503,7 +503,7 @@ void* remove(hashset* h, void* val){
             he = get_entry(bp,0);
             ehe = he + range;
             while(he <= ehe){
-                if(he->hash == keyhash && he->val != null && h->equals(val,he->val)){
+                if(he->valhash == keyhash && he->val != null && h->equals(val,he->val)){
                     void* val = he->val;
                     clear_entry(h,bp,he);
                     return val;
@@ -513,7 +513,7 @@ void* remove(hashset* h, void* val){
         }else{
             entry* ehe = he + range;
             while(he <= ehe){
-                if(he->hash == keyhash && he->val != null && h->equals(val,he->val)){
+                if(he->valhash == keyhash && he->val != null && h->equals(val,he->val)){
                     void* val = he->val;
                     clear_entry(h,bp,he);
                     return val;
