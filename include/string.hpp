@@ -2,6 +2,7 @@
 #define STRING_H
 
 #include "common.hpp"
+#include "string.hpp"
 
 namespace lsvm {
 namespace string {
@@ -52,5 +53,3 @@ namespace string {
 
 
 #endif
-
-

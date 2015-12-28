@@ -6,9 +6,9 @@
 namespace lsvm {
 namespace hashset {
 
-    using lsvm::hashmap::hash;
-    using lsvm::hashmap::equals_fp;
-    using lsvm::hashmap::hash_fp;
+    using lsvm::hash::hash;
+    using lsvm::hash::equals_fp;
+    using lsvm::hash::hash_fp;
     using lsvm::hashmap::hashbucket;
 
     typedef struct {

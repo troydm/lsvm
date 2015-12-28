@@ -10,15 +10,6 @@ namespace hashmap {
 const uint32_t primes[PRIME_MAX] = {29,53,97,193,389,769,1543,3079,6151,12289,24593,49157,98317,196613,393241,
                                     786433,1572869,3145739,6291469,12582917,25165843,50331653,100663319,201326611};
 
-// Function wrappers for equals and hash
-bool string_equals(void* i1, void* i2){
-    return lsvm::string::equals((lsvm::string::string*)i1,(lsvm::string::string*)i2);
-}
-
-hash string_hash(void* p){
-    return hash_string( (lsvm::string::string*)p );
-}
-
 #define pow2n(i)  (1 << (i))
 #define hashbit(h,bit) (h & bit)
 #define partition_count(bits) (bits+1)

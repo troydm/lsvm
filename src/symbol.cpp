@@ -40,19 +40,19 @@ symbol* new_symbol(lsvm::string::string* symbol){
     if(alpha1(c)){
         table = symbols_alpha[c-0x41];
         if(table == null){
-            table = lsvm::hashset::new_hashset(&lsvm::hashmap::string_equals,&lsvm::hashmap::string_hash);   
+            table = lsvm::hashset::new_hashset(&lsvm::hash::string_equals,&lsvm::hash::string_hash);   
             symbols_alpha[c-0x41] = table;
         }
     }else if(alpha2(c)){
         table = symbols_alpha[c-0x61+0x1A];
         if(table == null){
-            table = lsvm::hashset::new_hashset(&lsvm::hashmap::string_equals,&lsvm::hashmap::string_hash);   
+            table = lsvm::hashset::new_hashset(&lsvm::hash::string_equals,&lsvm::hash::string_hash);   
             symbols_alpha[c-0x61+0x1A] = table;
         }
     }else{
         table = symbols_other;
         if(table == null){
-            table = lsvm::hashset::new_hashset(&lsvm::hashmap::string_equals,&lsvm::hashmap::string_hash);   
+            table = lsvm::hashset::new_hashset(&lsvm::hash::string_equals,&lsvm::hash::string_hash);   
             symbols_other = table;
         }
     }
