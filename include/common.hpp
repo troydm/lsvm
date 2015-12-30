@@ -8,8 +8,6 @@
 #include <string>
 #include <cstring>
 
-#include "object.hpp"
-
 #define null 0
 
 #endif

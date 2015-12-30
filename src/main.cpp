@@ -6,13 +6,17 @@
 #include "memory.hpp"
 #include "hashmap.hpp"
 #include "string.hpp"
+#include "object.hpp"
+#include "system.hpp"
 
 using namespace std;
 using namespace lsvm::ast;
 
 int main(int argc, char* argv[]){
 
-    lsvm::memory::initialize();
+    lsvm::system::init();
+
+    printf("%d\n", (int)sizeof(lsvm::object::object));
 
     void* p = lsvm::memory::allocate(124);
     p = lsvm::memory::reallocate(p, 128);
@@ -101,9 +105,8 @@ int main(int argc, char* argv[]){
     
     cout << "Hello World!" << endl;
 
-    lsvm::symbol::clear();
     printf("%p\n",lsvm::symbol::get_symbol("hello"));
-    lsvm::memory::deinitialize();
+    lsvm::system::stop();
 
     return 0;
 }
