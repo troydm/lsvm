@@ -11,8 +11,8 @@ namespace symbol {
 #define alpha2(c) (0x61 <= c && c <= 0x7A)
     
 // symbols table
-lsvm::hashset::hashset* symbols_alpha[52] = { null };
-lsvm::hashset::hashset* symbols_other = null;
+lsvm::hashset::stringset* symbols_alpha[52] = { null };
+lsvm::hashset::stringset* symbols_other = null;
 
 // add symbol to symbols table
 symbol* new_symbol(const char* symbol){
@@ -40,19 +40,19 @@ symbol* new_symbol(lsvm::string::string* symbol){
     if(alpha1(c)){
         table = symbols_alpha[c-0x41];
         if(table == null){
-            table = lsvm::hashset::new_hashset(&lsvm::hash::string_equals,&lsvm::hash::string_hash);   
+            table = lsvm::hashset::new_stringset();
             symbols_alpha[c-0x41] = table;
         }
     }else if(alpha2(c)){
         table = symbols_alpha[c-0x61+0x1A];
         if(table == null){
-            table = lsvm::hashset::new_hashset(&lsvm::hash::string_equals,&lsvm::hash::string_hash);   
+            table = lsvm::hashset::new_stringset();
             symbols_alpha[c-0x61+0x1A] = table;
         }
     }else{
         table = symbols_other;
         if(table == null){
-            table = lsvm::hashset::new_hashset(&lsvm::hash::string_equals,&lsvm::hash::string_hash);   
+            table = lsvm::hashset::new_stringset();
             symbols_other = table;
         }
     }
@@ -120,7 +120,7 @@ void clear(){
                 he = lsvm::hashset::next(&it);
             }
         
-            lsvm::hashset::free(table);
+            lsvm::hashset::free_stringset(table);
             symbols_alpha[i] = null;
         }
     }
@@ -134,7 +134,7 @@ void clear(){
             he = lsvm::hashset::next(&it);
         }
 
-        lsvm::hashset::free(symbols_other);
+        lsvm::hashset::free_stringset(symbols_other);
         symbols_other = null;
     }
 }

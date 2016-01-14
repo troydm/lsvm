@@ -19,9 +19,21 @@ package* new_package(symbol* name){
 
     package* pkg = (package*)lsvm::memory::allocate(sizeof(package));
     pkg->name = name;
-    pkg->classes = lsvm::hashmap::new_hashmap(&lsvm::symbol::symbol_equals,&lsvm::symbol::symbol_hash);   
+    pkg->classes = lsvm::symbol::new_symbolmap();
     *parent = pkg;
     return pkg;    
+}
+
+package* get_package(symbol* name){
+    package* pkg = packages;
+    do{
+        if(lsvm::symbol::symbol_equals(pkg->name,name)){
+            return pkg;
+        }
+        pkg = pkg->next;
+    }while(pkg != null);
+
+    return null;
 }
 
 void free_package(package* pkg){
@@ -30,7 +42,7 @@ void free_package(package* pkg){
     while((e = lsvm::hashmap::next(&it)) != null){
         lsvm::object::free_class((object_class*)e->val);    
     }
-    lsvm::hashmap::free(pkg->classes);
+    lsvm::symbol::free_symbolmap(pkg->classes);
     lsvm::memory::retain(pkg);
 }
 
@@ -54,6 +66,7 @@ object_class* new_class(package* pkg, symbol* name, object_class* super, uint16_
     cls->name = name;
     cls->super = super;
     cls->fields_count = fields_count;
+    cls->methods = lsvm::symbol::new_symbolmap();
 
     for(uint16_t i = 0; i<fields_count; ++i){
         cls->fields[i] = null;
@@ -62,8 +75,38 @@ object_class* new_class(package* pkg, symbol* name, object_class* super, uint16_
     return cls;
 }
 
+object_class* get_class(symbol* package_name, symbol* name){
+    package* pkg = get_package(package_name);
+    if(pkg == null)
+        return null;
+
+    lsvm::hashmap::entry* e = lsvm::hashmap::get(pkg->classes,name);
+    if(e == null)
+        return null;
+    else
+        return (object_class*)e->val;
+}
+
 void free_class(object_class* cls){
+    lsvm::symbol::free_symbolmap(cls->methods);
     lsvm::memory::retain(cls);
+}
+
+void define_method(object_class* cls, symbol* name, block* block){
+    lsvm::hashmap::put(cls->methods,name,block);
+}
+
+block* find_method(object_class* cls, symbol* name){
+    do {
+        lsvm::hashmap::entry* e = lsvm::hashmap::get(cls->methods,name);
+        if(e == null){
+            cls = cls->super;
+        }else{
+            return (block*)e->val;
+        }
+    }while(cls != null);
+    
+    return null;    
 }
 
 }

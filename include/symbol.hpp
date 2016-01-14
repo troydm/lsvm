@@ -4,6 +4,8 @@
 #include "string.hpp"
 #include "hashmap.hpp"
 
+#define sym(name) lsvm::symbol::new_symbol(name)
+
 namespace lsvm {
 namespace symbol {
 
@@ -27,6 +29,17 @@ namespace symbol {
     inline lsvm::hashmap::hash hash(symbol* s){ return (lsvm::hashmap::hash)s; }
     bool symbol_equals(void* sym1, void* sym2);
     lsvm::hashmap::hash symbol_hash(void* s);
+
+    typedef lsvm::hashmap::hashmap symbolmap;
+        
+    inline symbolmap* new_symbolmap(){
+        return lsvm::hashmap::new_hashmap(&symbol_equals,&symbol_hash);   
+    }
+
+    inline void free_symbolmap(symbolmap* sm){
+        lsvm::hashmap::free(sm);
+    }
+
 }
 }
 

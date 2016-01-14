@@ -63,8 +63,18 @@ namespace hashset {
     void reset_iterator(iterator* hi);
     entry* current(iterator* hi);
     entry* next(iterator* hi);
-}
-}
 
+    // stringset
+    typedef hashset stringset;
+
+    inline stringset* new_stringset(){
+        return lsvm::hashset::new_hashset(&lsvm::hash::string_equals,&lsvm::hash::string_hash);   
+    }
+
+    inline void free_stringset(stringset* sm){
+        lsvm::hashset::free(sm);
+    }
+}
+}
 
 #endif

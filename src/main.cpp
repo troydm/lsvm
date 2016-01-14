@@ -8,6 +8,7 @@
 #include "string.hpp"
 #include "object.hpp"
 #include "system.hpp"
+#include "bytecode.hpp"
 
 using namespace std;
 using namespace lsvm::ast;
@@ -16,17 +17,36 @@ int main(int argc, char* argv[]){
 
     lsvm::system::init();
 
-    printf("%d\n", (int)sizeof(lsvm::object::object));
+    lsvm::bytecode::bytecode_op* v = (lsvm::bytecode::bytecode_op*)lsvm::memory::allocate(64);
+    v->next = null;
+    v->op_code = 3;
+    v->v[0].i = 0;
+    v->v[1].i = 4;
+    lsvm::bytecode::bytecode_op* v2 = (lsvm::bytecode::bytecode_op*)lsvm::memory::allocate(128);
+    v2->op_code = 1;
+    v2->v[0].i = 0;
+    v2->v[1].i = 0;
+    v2->v[2].sy = sym("hash");
+    v->next = v2;
 
-    void* p = lsvm::memory::allocate(124);
-    p = lsvm::memory::reallocate(p, 128);
-    lsvm::memory::retain(p);
 
+    lsvm::bytecode::bytecode bc;
+    bc.v_args=0;
+    bc.v_temp=0;
+    bc.op = v;
+    //for(uint8_t i =0;i<33;++i)
+    //    printf("%d ",*(((uint8_t*)v)+i));
+    //printf("\n");
+
+    lsvm::object::block* b = lsvm::bytecode::new_bytecode_block(0, &bc);
+    lsvm::system::new_process(b);
+    lsvm::system::run();
 
     //lsvm::hashmap::hashmap* h = lsvm::hashmap::new_hashmap(lsvm::symbol::equals,lsvm::hashmap::hash);
 
     //lsvm::hashmap::free_hashmap(h);
 
+    /*
     lsvm::string::string* s = lsvm::string::new_string();
 
     printf("%d\n",strlen(lsvm::string::c_str(s)));
@@ -40,6 +60,7 @@ int main(int argc, char* argv[]){
 
     printf("%d\n",lsvm::string::size(s));
     printf("%d\n",strlen(lsvm::string::c_str(s)));
+    */
 
     // int size = strtol(argv[1],NULL,10);
     // int range = strtol(argv[2],NULL,10);
@@ -98,6 +119,7 @@ int main(int argc, char* argv[]){
 
     //ASTMessage m(ASTNumber(4),ASTLiteral("+"),ASTNumber(4));
     // Integer a(12);
+    /*
     printf("%p\n",lsvm::symbol::get_symbol("hello"));
     printf("%p\n",lsvm::symbol::new_symbol("hello"));
     printf("%p\n",lsvm::symbol::new_symbol("hello"));
@@ -106,6 +128,7 @@ int main(int argc, char* argv[]){
     cout << "Hello World!" << endl;
 
     printf("%p\n",lsvm::symbol::get_symbol("hello"));
+    */
     lsvm::system::stop();
 
     return 0;

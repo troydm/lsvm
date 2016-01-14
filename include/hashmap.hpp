@@ -3,6 +3,7 @@
 
 #include "common.hpp"
 #include "hash.hpp"
+#include "string.hpp"
 
 namespace lsvm {
 namespace hashmap {
@@ -70,6 +71,7 @@ namespace hashmap {
     void reset_iterator(iterator* hi);
     entry* current(iterator* hi);
     entry* next(iterator* hi);
+
 }
 }
 

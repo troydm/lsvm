@@ -112,25 +112,30 @@ string_char next(iterator* it){
         return null;
 
     uint8_t* s = reinterpret_cast<uint8_t*>(it->s+1);
-    uint8_t* s2 = reinterpret_cast<uint8_t*>(&sc);
     s += it->p;
     
     if (*s < 0x80) {
-        sc = *s;
+        sc = (*s & 0x7F);
     } else if (*s < 0xE0) {
-        *s2 = *s;
-        *(s2+1) = *(s+1);
+        sc = (*s & 0x1F);
+        sc <<= 6;
+        sc |= (*(s+1) & 0x3F);
         it->p += 1;
     } else if (*s < 0xF0) {
-        *s2 = *s;
-        *(s2+1) = *(s+1);
-        *(s2+2) = *(s+2);
+        sc = (*s & 0xF);
+        sc <<= 6;
+        sc |= (*(s+1) & 0x3F);
+        sc <<= 6;
+        sc |= (*(s+2) & 0x3F);
         it->p += 2;
     } else if (*s < 0xF5) {
-        *s2 = *s;
-        *(s2+1) = *(s+1);
-        *(s2+2) = *(s+2);
-        *(s2+3) = *(s+3);
+        sc = (*s & 0x7);
+        sc <<= 6;
+        sc |= (*(s+1) & 0x3F);
+        sc <<= 6;
+        sc |= (*(s+2) & 0x3F);
+        sc <<= 6;
+        sc |= (*(s+3) & 0x3F);
         it->p += 3;
     }
 
@@ -184,6 +189,12 @@ bool equals(string* s1, const char* s2){
 // free string
 void free(string* s){
     lsvm::memory::retain(s);
+}
+
+#define between(c,a,b) (a <= c && c <= b)
+
+bool is_upper(string_char c){
+    return between(c,0x41,0x5A);
 }
 
 }
