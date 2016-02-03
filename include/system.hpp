@@ -11,16 +11,21 @@ namespace system {
     using lsvm::object::message_frame;
     using lsvm::symbol::symbol;
 
-    typedef message_frame process;
     typedef uint32_t process_id;
+    typedef struct process_t {
+        struct process_t** prev;
+        struct process_t* next;
+        process_id id;
+        uint8_t status;
+        message_frame* mf;
+    } process;
     
     void init();
     void stop();
 
     process_id new_process(block* b);
-    void free_process(process_id pid);
-    void replace_current_process(process* p);
-    void return_current_process();
+    void replace_frame(message_frame* mf);
+    void push_frame(message_frame* mf);
     void run();
 
 }

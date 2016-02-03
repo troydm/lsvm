@@ -32,22 +32,31 @@ void call_op(message_frame* m, variable v[]){
     if(b != null){
         if(b->on_frame){
             b->f(m);        
+            next_op();
         }else{
-            // set return variable
-            m->ret_var_indx = v(0).i;
             lsvm::object::message_frame* nm = lsvm::object::new_message_frame(b);
             // set self receiver object
             nm->v[1] = v(1);
             // copy argument variables to new message frame
             for(uint32_t i = 0; i < v(3).i; ++i)
                 nm->v[2+i] = mv(4+i);
-            // replace current process with new message frame
-            lsvm::system::replace_current_process(nm);
+            next_op();
+
+            if(m->bytecode_op == null){
+                // TCO
+                // replace current process message frame with new message frame
+                lsvm::system::replace_frame(nm);
+                free_message_frame(m);
+            }else{
+                // set return variable
+                m->ret_var_indx = v(0).i;
+                // push new message frame to current process
+                lsvm::system::push_frame(nm);
+            }
         }
     }else{
         // TODO: method not found
     }
-    next_op();
 }
 
 void set_bool_op(message_frame* m, variable v[]){

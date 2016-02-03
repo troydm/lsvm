@@ -18,7 +18,6 @@ int main(int argc, char* argv[]){
     lsvm::system::init();
 
     lsvm::bytecode::bytecode_op* v = (lsvm::bytecode::bytecode_op*)lsvm::memory::allocate(64);
-    v->next = null;
     v->op_code = 3;
     v->v[0].i = 0;
     v->v[1].i = 4;

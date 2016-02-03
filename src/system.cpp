@@ -4,6 +4,8 @@
 #include "object.hpp"
 #include "bytecode.hpp"
 
+#include <ctime>
+
 namespace lsvm {
 namespace system {
 
@@ -14,13 +16,13 @@ using lsvm::object::block;
 using lsvm::object::message_frame;
 using lsvm::bytecode::bytecode_op;
 
+process* processes;
 uint32_t processes_count;
-process_id process_curr_id;
-process_id process_free_id;
-message_frame** processes;
-#define total_processes process_free_id
-#define current_process processes[process_curr_id] 
-#define has_processes process_free_id > 0
+process* current_process;
+#define has_processes processes_count > 0
+
+clock_t max_time_slice = CLOCKS_PER_SEC/100;
+uint16_t atleast_n_ops = 2000;
 
 object_class* Class, *Object, *Nil, *Integer;
 
@@ -39,11 +41,10 @@ def_system_block(hash_block,hash_block_f,1);
 
 void init(){
     lsvm::memory::initialize();
-    // initialize processes
-    processes_count = 1024;
-    process_curr_id = 0;
-    process_free_id = 0;
-    processes = (message_frame**)lsvm::memory::allocate(processes_count*sizeof(message_frame*));
+    // initialize process
+    processes_count = 0;
+    processes = null;
+    current_process = null;
 
     // initialize global package
     package* system = lsvm::object::new_package(sym("system"));
@@ -68,64 +69,84 @@ void init(){
 void stop(){
     lsvm::object::free_packages();
     lsvm::symbol::clear();
-    lsvm::memory::retain(processes);
     lsvm::memory::deinitialize();
 }
 
+inline void schedule_next_process(){
+}
+
 process_id new_process(block* b){
-    if(process_free_id == processes_count){
-        processes_count *= 2;
-        processes = (message_frame**)lsvm::memory::reallocate(processes,processes_count*sizeof(message_frame*));
-    }
-    
-    processes[process_free_id] = lsvm::object::new_message_frame(b);
-    return process_free_id++;
+    process* p = (process*)lsvm::memory::allocate(sizeof(process));
+    p->id = ++processes_count;
+    p->prev = &processes;
+    p->next = processes;
+    p->mf = lsvm::object::new_message_frame(b);
+    processes = p;
+    return p->id;
 }
 
-void free_process(process_id process_id){
-    lsvm::object::free_message_frame(processes[process_id]);
-    if(process_free_id-1 != process_id){
-        processes[process_id] = processes[process_free_id-1];
-    }else{
-        processes[process_id] = null;
-    }
-    --process_free_id;
+void free_process(process* p){
+    current_process = p->next;
+    if(p->next != null)
+        p->next->prev = p->prev;
+    *(p->prev) = p->next;
+    --processes_count;
+    lsvm::memory::retain(p);
 }
 
-void replace_current_process(process* p){
-    p->next = processes[process_curr_id];
-    processes[process_curr_id] = p;
+void replace_frame(message_frame* mf){
+    mf->next = current_process->mf->next;
+    current_process->mf = mf;
 }
 
-void return_current_process(){
-    process* p = processes[process_curr_id];
-    if(p->next == null){
-        free_process(process_curr_id);
-    }else{
-        process* pr = p->next;
-        // copying return value back to caller message frame
-        pr->v[pr->ret_var_indx] = p->v[0];
-        processes[process_curr_id] = pr;
-        lsvm::object::free_message_frame(p);
-    }
+void push_frame(message_frame* mf){
+    mf->next = current_process->mf;
+    current_process->mf = mf;
 }
 
-uint32_t run_n_ops(uint32_t ops);
+uint16_t run_n_ops(uint16_t ops);
 
 void run(){
-    run_n_ops(10);
+    //printf("%p %d\n",processes,processes_count);
+    printf("%d\n",run_n_ops(atleast_n_ops));
+    //printf("%p %d\n",processes,processes_count);
 }
 
-uint32_t run_n_ops(uint32_t ops){
-    while(ops > 0 && has_processes){
-        process* p = current_process;
-        if(p->bytecode_op != null){
-            p->f(p);
-            --ops;
-        }else{
-            return_current_process();
+uint16_t run_n_ops(uint16_t ops){
+    clock_t until = clock()+max_time_slice;
+    process* p = current_process;
+    do {
+        if(p == null){
+            if(has_processes){
+                current_process = processes;    
+            }else{
+                break;
+            }
+            p = current_process;
         }
-    }
+        do {
+            message_frame* mf = p->mf;
+            if(mf->bytecode_op != null){
+                mf->f(mf);
+            }else{
+                if(mf->next == null){
+                    lsvm::object::free_message_frame(mf);
+                    free_process(p);
+                    p = current_process;
+                    --ops;
+                    break;
+                }else{
+                    message_frame* r = mf->next;
+                    // copying return value back to caller message frame
+                    r->v[r->ret_var_indx] = mf->v[0];
+                    // pop message frame
+                    lsvm::object::free_message_frame(mf);
+                    p->mf = r;
+                }
+            }
+            --ops;
+        }while(ops > 0);
+    }while(clock() < until);
 
     return ops;
 }
