@@ -28,17 +28,17 @@ process* current_process;
 object_class* Class, *Object, *Nil, *Integer;
 
 #define arg(i) (m->v[i])
-#define op(i) (op->v[i])
-#define def_system_block(n,f,a) block n = { &f, true, null, a, 0, 0}
+#define v(i) (op->v[i])
+#define def_system_block(n,o,f,a) bytecode_op o = {null,&f}; block n = { true, &o, a, 0, 0}
 
 void hash_block_f(message_frame* m){
-    bytecode_op* op = m->bytecode_op;
-    variable* v0 = &op(0);
-    variable* v1 = &op(1);
+    bytecode_op* op = m->op;
+    variable* v0 = &v(0);
+    variable* v1 = &v(1);
     if(arg(v1->i).cls == Integer)
         set_int(&arg(v0->i),arg(v1->i).i);
 } 
-def_system_block(hash_block,hash_block_f,1);
+def_system_block(hash_block,hash_block_op,hash_block_f,1);
 
 void init(){
     lsvm::memory::initialize();
@@ -163,8 +163,8 @@ CHECK_PROCESS:
         current_process->ops = atleast_n_ops;
         do {
             message_frame* mf = current_process->mf;
-            if(mf->bytecode_op != null){
-                mf->f(mf);
+            if(mf->op != null){
+                mf->op->op(mf);
             }else{
                 if(mf->next == null){
                     lsvm::object::free_message_frame(mf);
@@ -199,9 +199,8 @@ message_frame* new_message_frame(block* b){
             ((1+b->v_args+b->v_copy+b->v_temp)*sizeof(variable))
             );
     m->next = null;
-    m->f = b->f; 
     m->b = b;
-    m->bytecode_op = b->bytecode_op;
+    m->op = b->op;
     set_nil(&arg(0));
     // copy block enviroment variables
     int32_t i = b->v_copy-1;
@@ -235,8 +234,7 @@ block* new_bytecode_block(uint32_t v_copy, bytecode* bytecode){
     b->v_args = bytecode->v_args;
     b->v_copy = v_copy;
     b->v_temp = bytecode->v_temp;
-    b->f = &lsvm::bytecode::bytecode_f;
-    b->bytecode_op = bytecode->op;
+    b->op = bytecode->op;
     return b;
 }
 

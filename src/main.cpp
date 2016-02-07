@@ -18,11 +18,11 @@ int main(int argc, char* argv[]){
     lsvm::system::init();
 
     lsvm::bytecode::bytecode_op* v = (lsvm::bytecode::bytecode_op*)lsvm::memory::allocate(64);
-    v->op_code = 3;
+    v->op = lsvm::bytecode::get_bytecode_op(lsvm::bytecode::SET_INT);
     v->v[0].i = 0;
     v->v[1].i = 4;
     lsvm::bytecode::bytecode_op* v2 = (lsvm::bytecode::bytecode_op*)lsvm::memory::allocate(128);
-    v2->op_code = 1;
+    v2->op = lsvm::bytecode::get_bytecode_op(lsvm::bytecode::COPY);
     v2->v[0].i = 0;
     v2->v[1].i = 0;
     v2->v[2].sy = sym("hash");

@@ -9,11 +9,9 @@ using lsvm::object::block;
 using lsvm::object::message_frame;
 using lsvm::object::variable;
 
-typedef void (*bytecode_op_f)(message_frame* m, variable v[]);
-
-#define v(a) v[a]
-#define mv(a) m->v[v[a].i]
-#define next_op() m->bytecode_op = m->bytecode_op->next;
+#define v(a) m->op->v[a]
+#define mv(a) m->v[m->op->v[a].i]
+#define next_op() m->op = m->op->next;
 
 // FOR DEBUG USE ONLY
 void print_var(variable* v){
@@ -21,17 +19,17 @@ void print_var(variable* v){
 }
 
 // COPY = 0, [int] from_var, [int] to_var
-void copy_op(message_frame* m, variable v[]){
+void copy_op(message_frame* m){
     mv(0) = mv(1);
     next_op();
 }
 
 // CALL = 1, [int] ret, [object] reciever, [symbol] msg, [int] var_args_count, [int] var_args...
-void call_op(message_frame* m, variable v[]){
+void call_op(message_frame* m){
     block* b = lsvm::object::find_method(mv(1).cls,v(2).sy);
     if(b != null){
         if(b->on_frame){
-            b->f(m);        
+            b->op->op(m);        
             next_op();
         }else{
             lsvm::object::message_frame* nm = lsvm::object::new_message_frame(b);
@@ -42,7 +40,7 @@ void call_op(message_frame* m, variable v[]){
                 nm->v[2+i] = mv(4+i);
             next_op();
 
-            if(m->bytecode_op == null){
+            if(m->op == null){
                 // TCO
                 // replace current process message frame with new message frame
                 lsvm::system::replace_frame(nm);
@@ -59,26 +57,31 @@ void call_op(message_frame* m, variable v[]){
     }
 }
 
-void set_bool_op(message_frame* m, variable v[]){
+void set_bool_op(message_frame* m){
     //set_bool(&mv(0), v(1).b);
     next_op();
 }
 
-void set_int_op(message_frame* m, variable v[]){
+void set_int_op(message_frame* m){
     set_int(&mv(0), v(1).i);
     next_op();
 }
 
-void set_double_op(message_frame* m, variable v[]){
+void set_double_op(message_frame* m){
     //set_double(&mv(0), v(1).d);
     next_op();
 }
 
-bytecode_op_f bytecode_jump_table[256] = { &copy_op, &call_op, &set_bool_op, &set_int_op, &set_double_op };
+bytecode_op_f bytecode_op_table[256] = { 
+    &copy_op, // COPY
+    &call_op, // CALL
+    &set_bool_op, // SET_BOOL
+    &set_int_op,  // SET_INT
+    &set_double_op  // SET_DOUBLE
+};
 
-void bytecode_f(message_frame* m){
-    bytecode_op* op = m->bytecode_op;
-    (bytecode_jump_table[op->op_code])(m,op->v);
+bytecode_op_f get_bytecode_op(bytecode_op_type op_code){
+    return bytecode_op_table[op_code];
 }
 
 }

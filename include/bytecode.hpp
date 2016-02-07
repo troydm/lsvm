@@ -18,9 +18,11 @@ namespace bytecode {
     } 
     bytecode_op_type;
 
+    typedef void (*bytecode_op_f)(message_frame* m);
+
     typedef struct bytecode_op_t {
-        uint8_t op_code;
         struct bytecode_op_t* next;
+        bytecode_op_f op;
         variable v[];
     } bytecode_op;
 
@@ -30,7 +32,8 @@ namespace bytecode {
         bytecode_op* op;
     } bytecode;
     
-    void bytecode_f(message_frame* mf);
+    bytecode_op_f get_bytecode_op(bytecode_op_type op_code);
+
     block* new_bytecode_block(uint32_t v_copy, bytecode* bytecode);
 
 }

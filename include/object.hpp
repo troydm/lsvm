@@ -34,8 +34,6 @@ namespace object {
     struct variable_t;
     struct block_t;
 
-    typedef void (*message_fp)(struct message_frame_t* mf);
-
     typedef struct variable_t {
         object_class* cls;
         union {
@@ -56,16 +54,14 @@ namespace object {
     typedef struct message_frame_t {
         struct message_frame_t* next;
         uint32_t ret_var_indx;
-        struct lsvm::bytecode::bytecode_op_t* bytecode_op;
-        message_fp f;
+        struct lsvm::bytecode::bytecode_op_t* op;
         struct block_t* b;
         variable v[];    
     } message_frame ;
 
     typedef struct block_t {
-        message_fp f;
         bool on_frame;
-        struct lsvm::bytecode::bytecode_op_t* bytecode_op;
+        struct lsvm::bytecode::bytecode_op_t* op;
         uint32_t v_args;
         uint32_t v_copy;
         uint32_t v_temp;
