@@ -12,11 +12,13 @@ namespace system {
     using lsvm::symbol::symbol;
 
     typedef uint32_t process_id;
+    typedef enum { RUNNING, WAITING, WAITING_IO } process_status;
     typedef struct process_t {
         struct process_t** prev;
         struct process_t* next;
         process_id id;
-        uint8_t status;
+        process_status status;
+        uint16_t ops;
         message_frame* mf;
     } process;
     

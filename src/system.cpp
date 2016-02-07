@@ -21,8 +21,9 @@ uint32_t processes_count;
 process* current_process;
 #define has_processes processes_count > 0
 
-clock_t max_time_slice = CLOCKS_PER_SEC/100;
-uint16_t atleast_n_ops = 2000;
+#define max_time_slice (CLOCKS_PER_SEC/100)
+#define max_time_slice_half (max_time_slice/2)
+#define atleast_n_ops 10
 
 object_class* Class, *Object, *Nil, *Integer;
 
@@ -81,15 +82,16 @@ process_id new_process(block* b){
     p->prev = &processes;
     p->next = processes;
     p->mf = lsvm::object::new_message_frame(b);
+    p->status = RUNNING;
     processes = p;
     return p->id;
 }
 
 void free_process(process* p){
     current_process = p->next;
-    if(p->next != null)
-        p->next->prev = p->prev;
-    *(p->prev) = p->next;
+    if(current_process != null)
+        current_process->prev = p->prev;
+    *(p->prev) = current_process;
     --processes_count;
     lsvm::memory::retain(p);
 }
@@ -104,51 +106,86 @@ void push_frame(message_frame* mf){
     current_process->mf = mf;
 }
 
-uint16_t run_n_ops(uint16_t ops);
+// get current time in millis seconds
+uint32_t current_time(){
+    struct timespec t;
+    clock_gettime(CLOCK_REALTIME, &t);
+    uint64_t millis = t.tv_sec*1000LL;
+    millis += t.tv_nsec/1000000;
+    return millis;
+}
+
+void sleep(uint32_t millis){
+#if _POSIX_C_SOURCE >= 199309L
+    struct timespec t;
+    t.tv_sec = millis / 1000;
+    t.tv_nsec = (millis % 1000) * 1000000;
+    nanosleep(&t, NULL);
+#else
+    usleep(milliseconds * 1000);
+#endif
+}
+
+clock_t run_time_slice();
 
 void run(){
     //printf("%p %d\n",processes,processes_count);
-    printf("%d\n",run_n_ops(atleast_n_ops));
+    clock_t clocks = run_time_slice();
+    if(clocks < max_time_slice_half){
+        sleep(10);
+        printf("sleep\n");
+    }
+    printf("%d\n",(int)clocks);
     //printf("%p %d\n",processes,processes_count);
 }
 
-uint16_t run_n_ops(uint16_t ops){
-    clock_t until = clock()+max_time_slice;
-    process* p = current_process;
+clock_t run_time_slice(){
+    clock_t start = clock();
+    clock_t until = start+max_time_slice;
+    uint32_t processes_not_running = 0;
     do {
-        if(p == null){
+CHECK_PROCESS:
+        // check current process
+        if(current_process == null){
             if(has_processes){
                 current_process = processes;    
             }else{
                 break;
             }
-            p = current_process;
+        }else if(current_process->status != RUNNING){
+            current_process = current_process->next;
+            if(++processes_not_running > 2*processes_count){
+                break;            
+            }
+            goto CHECK_PROCESS;
         }
+        // run atleast n ops in current process
+        current_process->ops = atleast_n_ops;
         do {
-            message_frame* mf = p->mf;
+            message_frame* mf = current_process->mf;
             if(mf->bytecode_op != null){
                 mf->f(mf);
             }else{
                 if(mf->next == null){
                     lsvm::object::free_message_frame(mf);
-                    free_process(p);
-                    p = current_process;
-                    --ops;
-                    break;
+                    free_process(current_process);
+                    goto CHECK_PROCESS;
                 }else{
                     message_frame* r = mf->next;
                     // copying return value back to caller message frame
                     r->v[r->ret_var_indx] = mf->v[0];
                     // pop message frame
                     lsvm::object::free_message_frame(mf);
-                    p->mf = r;
+                    current_process->mf = r;
                 }
             }
-            --ops;
-        }while(ops > 0);
+            current_process->ops -= 1;
+        }while(current_process->ops > 0);
+        // schedule next process
+        current_process = current_process->next;
     }while(clock() < until);
 
-    return ops;
+    return clock() - start;
 }
 
 
